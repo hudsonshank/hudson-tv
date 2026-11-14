@@ -10,14 +10,25 @@
   // ---------- small helpers ----------
   function store(k, v) { try { localStorage.setItem("hudson." + k, JSON.stringify(v)); } catch (e) {} }
   function kept(k) { try { return JSON.parse(localStorage.getItem("hudson." + k)); } catch (e) { return null; } }
-  function get(url, timeout, done) {
+  function get(url, timeout, done, headers) {
     var x = new XMLHttpRequest();
     x.open("GET", url);
+    for (var h in headers || {}) x.setRequestHeader(h, headers[h]);
     x.timeout = timeout;
     x.onload = function () { done(x.status >= 200 && x.status < 300 ? null : "HTTP " + x.status, x.responseText); };
     x.onerror = function () { done("network error"); };
     x.ontimeout = function () { done("timed out"); };
     x.send();
+  }
+  function post(url, body, done) {
+    var x = new XMLHttpRequest();
+    x.open("POST", url);
+    x.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    x.timeout = 20000;
+    x.onload = function () { done(x.status >= 200 && x.status < 300 ? null : "HTTP " + x.status, x.responseText); };
+    x.onerror = function () { done("network error"); };
+    x.ontimeout = function () { done("timed out"); };
+    x.send(body);
   }
   function log(t) { try { console.log("hudson: " + t); } catch (e) {} }
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -235,92 +246,91 @@
         when + " · " + shortWhere(w), [t.kind, g.note || g.venue].filter(Boolean).join(" · "), !w.app);
       el.classList.toggle("live", g.state === "in");
     }
-    drawOutside();
+    drawTraining();
     setGreetingSub();
   }
-  // ---------- outside today: weather for getting out, alerts, the moon after dark ----------
-  var outside = kept("outside"), outsideAt = outside ? outside.at || 0 : 0;
-  var MOODS = { day: ["#3d8bd4", "#f0b450"], wet: ["#3d5a75", "#1f2b38"], night: ["#1b2552", "#5b4c9c"], alert: ["#c0463b", "#5a1d18"] };
-  function sunTimes() {
-    var w = kept("weather"), d = w && w.daily, now = new Date();
-    var key = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2) + "-" + ("0" + now.getDate()).slice(-2);
-    var i = d ? d.time.indexOf(key) : -1;
-    if (i < 0) return { rise: midnight(now) + 7 * 3600000, set: midnight(now) + 17 * 3600000 };
-    return { rise: new Date(d.sunrise[i]).getTime(), set: new Date(d.sunset[i]).getTime() };
+  // ---------- training week: Hevy workouts, read from Strava ----------
+  var train = kept("training"), trainAt = 0, trainState = kept("strava") || {}, trainErr = "";
+  function fmtMin(m) { return m >= 60 ? Math.floor(m / 60) + " h " + (m % 60 ? m % 60 + " m" : "") : m + " min"; }
+  function fmtLb(v) { return v >= 1000 ? (Math.round(v / 100) / 10).toLocaleString("en-US") + "k lb" : v + " lb"; }
+  function ago(ms) {
+    var diff = Math.round((midnight(new Date()) - midnight(new Date(ms))) / 86400000);
+    return diff <= 0 ? "today" : diff === 1 ? "yesterday" : diff < 7 ? DAYS[new Date(ms).getDay()] : MONTHS[new Date(ms).getMonth()].slice(0, 3) + " " + new Date(ms).getDate();
   }
-  function outsideNow() {
-    if (!outside || !window.Outside) return null;
-    var st = sunTimes();
-    return window.Outside.summarize(outside.weather, outside.aqi, outside.alerts, Date.now(), st.rise, st.set);
-  }
-  function loadOutside() {
-    if (!window.Outside || C.lat === undefined) return;
-    window.Outside.load(C, get, function (err, o) {
-      outsideAt = Date.now();
-      if (err || !o.weather) { log("outside " + (err || "no forecast")); return; }
-      o.at = outsideAt;
-      outside = o;
-      store("outside", o);
-      drawOutside();
+  function loadTraining() {
+    if (!C.strava || !window.Training) return;
+    var tc = { clientId: C.strava.clientId, clientSecret: C.strava.clientSecret, refreshToken: C.strava.refreshToken, rotation: C.rotation };
+    window.Training.load(tc, trainState, get, post, function (st) { trainState = st; store("strava", st); }, function (err, t) {
+      trainAt = Date.now();
+      if (err) { trainErr = err; log("training " + err); drawTraining(); return; }
+      trainErr = ""; train = t;
+      store("training", t);
+      drawTraining();
       if (sheet && sheet.refresh) sheet.refresh();
     });
   }
-  function outsideTick() { if (Date.now() - outsideAt > 15 * 60000) loadOutside(); }
-  function moodIcon(x) {
-    if (x.mood === "night") return x.moon.lit > 60 ? "night" : "partlynight";
-    if (x.mood === "alert") return "storm";
-    if (x.mood === "wet") return /Snow/.test(x.title) ? "snow" : "rain";
-    var h = x.hours[0];
-    return h ? sky(h.code, true).icon : "clear";
+  function trainingTick() { if (Date.now() - trainAt > 15 * 60000) loadTraining(); }
+  function drawTraining() {
+    var el = $("train-card"), dots = el.querySelector(".dots");
+    tint(el, "#e4572e", "#7a1f3d");
+    var today = (new Date().getDay() + 6) % 7;
+    dots.innerHTML = "";
+    "MTWTFSS".split("").forEach(function (l, i) {
+      var d = document.createElement("span");
+      d.className = "d" + (train && train.days[i] ? " on" : "") + (i === today ? " today" : "");
+      d.innerHTML = "<i></i><em></em>";
+      d.querySelector("em").textContent = l;
+      dots.appendChild(d);
+    });
+    var title = el.querySelector(".title"), sub = el.querySelector(".sub"), side = el.querySelector(".side");
+    if (!C.strava) { title.textContent = "Training week"; sub.textContent = "Connect Strava to see your Hevy workouts"; side.textContent = ""; return; }
+    if (!train) { title.textContent = "Training week"; sub.textContent = trainErr ? "Couldn't reach Strava" : "Loading your workouts…"; side.textContent = ""; return; }
+    title.textContent = train.workouts ? train.workouts + (train.workouts === 1 ? " workout" : " workouts") + " this week · " + fmtMin(train.minutes)
+      : "No workouts yet this week";
+    var l = train.last;
+    sub.textContent = l ? "Last: " + l.name + " · " + ago(l.start) + (l.exercises.length ? " · " + l.exercises.length + " exercises" : " · " + fmtMin(l.minutes)) : "";
+    side.textContent = [train.upNext ? "Up next: " + train.upNext : "", train.streak > 1 ? train.streak + "-week streak" : ""].filter(Boolean).join("\n");
   }
-  function drawOutside() {
-    var el = $("out-card"), x = outsideNow();
-    if (!x) {
-      tint(el, MOODS.day[0], MOODS.day[1]);
-      icon(el.querySelector(".ico"), "partly");
-      el.querySelector(".title").textContent = "Outside today";
-      el.querySelector(".sub").textContent = "Checking the next few hours…";
-      el.querySelector(".side").textContent = "";
-      return;
-    }
-    var m = MOODS[x.mood] || MOODS.day;
-    tint(el, m[0], m[1]);
-    el.classList.toggle("alert", x.mood === "alert");
-    icon(el.querySelector(".ico"), moodIcon(x));
-    el.querySelector(".title").textContent = x.title;
-    el.querySelector(".sub").textContent = x.sub;
-    el.querySelector(".sub").className = "sub";
-    el.querySelector(".side").textContent = x.side || C.place || "";
-  }
-  function openOutside(back) {
+  function openTraining(back) {
     openSheet(function (s) {
       s.back = back;
-      var x = outsideNow();
-      head(s, null, "Outside", (C.place || "") + (x ? " · " + x.moon.name.toLowerCase() + ", " + x.moon.lit + "% lit" : ""));
-      if (!x) { opt(s, "note", "<span class='what'>Checking the next few hours…</span>", null); return; }
-      (outside.alerts || []).forEach(function (a) {
-        var o = opt(s, "alertrow", '<span class="what"></span><span class="note"></span>', null);
-        o.querySelector(".what").textContent = a.event;
-        o.querySelector(".note").textContent = (a.headline || "") + (a.description ? "\n" + a.description.split("\n\n")[0] : "");
+      if (!train) { head(s, null, "Training", ""); opt(s, "note", "<span class='what'>Loading your workouts…</span>", null); return; }
+      var lw = train.lastWeek;
+      head(s, null, "Training · this week", [fmtMin(train.minutes), fmtLb(train.volume) + " lifted",
+        "last week " + lw.workouts + " workouts, " + fmtLb(lw.volume)].join(" · "));
+      var list = train.week.length ? train.week : (train.last ? [train.last] : []);
+      if (!train.week.length && list.length) opt(s, "note", "<span class='what'>Nothing logged yet this week. Your last session:</span>", null);
+      list.forEach(function (x) {
+        var o = opt(s, "session", '<span class="when"></span><span class="what"></span><span class="where"></span>',
+          function () { openSession(x.id, function () { openTraining(back); }); });
+        o.querySelector(".when").textContent = ago(x.start).replace(/^./, function (c) { return c.toUpperCase(); });
+        o.querySelector(".what").textContent = x.name;
+        o.querySelector(".where").textContent = [fmtMin(x.minutes), x.exercises.length ? x.exercises.length + " exercises" : "",
+          x.volume ? fmtLb(x.volume) : "", x.miles ? x.miles + " mi" : ""].filter(Boolean).join(" · ");
       });
-      var grid = document.createElement("div");
-      grid.className = "hours";
-      x.hours.forEach(function (h) {
-        var c = document.createElement("div");
-        c.className = "hour" + (h.rain >= 40 ? " wet" : "");
-        c.innerHTML = '<span class="t"></span><span class="ico"></span><b></b><span class="r"></span>';
-        c.querySelector(".t").textContent = hm(new Date(h.t), true).replace(":00 ", " ");
-        icon(c.querySelector(".ico"), sky(h.code, new Date(h.t).getHours() >= 7 && new Date(h.t).getHours() < 17).icon);
-        c.querySelector("b").textContent = Math.round(h.temp) + "°";
-        c.querySelector(".r").textContent = h.rain >= 10 ? h.rain + "%" : "";
-        grid.appendChild(c);
+      if (train.upNext) opt(s, "note", "<span class='what'>Up next in your rotation: " + train.upNext + "</span>", null);
+    });
+  }
+  function openSession(id, back) {
+    openSheet(function (s) {
+      s.back = back;
+      var x = (train.week.concat(train.last ? [train.last] : [])).filter(function (w) { return w.id === id; })[0];
+      if (!x) { closeSheet(); return; }
+      head(s, null, x.name + " · " + ago(x.start), [fmtMin(x.minutes), x.sets ? x.sets + " sets" : "", x.volume ? fmtLb(x.volume) : "",
+        x.calories ? Math.round(x.calories) + " cal" : "", x.hr ? "avg " + Math.round(x.hr) + " bpm" : ""].filter(Boolean).join(" · "));
+      var box = document.createElement("div");
+      box.className = "lifts";
+      x.exercises.forEach(function (e) {
+        var r = document.createElement("div");
+        r.className = "lift";
+        r.innerHTML = '<span class="ename"></span><span class="best"></span><span class="enote"></span>';
+        r.querySelector(".ename").textContent = e.name;
+        r.querySelector(".best").textContent = window.Training.setText(window.Training.topSet(e)) + "  ·  " + e.sets.length + (e.sets.length === 1 ? " set" : " sets");
+        r.querySelector(".enote").textContent = e.note ? "“" + e.note + "”" : "";
+        box.appendChild(r);
       });
-      s.panel.appendChild(grid);
-      var st = sunTimes(), foot = document.createElement("p");
-      foot.className = "sheet-foot";
-      foot.textContent = ["Sunrise " + hm(new Date(st.rise), true), "Sunset " + hm(new Date(st.set), true),
-        window.Outside.aqiText(outside.aqi)].filter(Boolean).join("   ·   ");
-      s.panel.appendChild(foot);
+      s.panel.appendChild(box);
+      opt(s, "note", "<span class='what'>Back to the week</span>", function () { closeSheet(); });
     });
   }
 
@@ -563,7 +573,7 @@
 
   // ---------- the remote ----------
   // Focus lives in the bottom row; Up reaches the NFL box (Fantasy, then Panthers), Down comes back.
-  var cardFocus = -1, CARDS = ["out-card", "nfl-card"];
+  var cardFocus = -1, CARDS = ["train-card", "nfl-card"];
   function showCardFocus() {
     CARDS.forEach(function (id, i) { $(id).classList.toggle("focus", i === cardFocus && !sheet); });
     showFocus();
@@ -585,7 +595,7 @@
     if (cardFocus >= 0) {
       if (k === 38 && cardFocus < CARDS.length - 1) cardFocus++;
       else if (k === 40) cardFocus--;
-      else if (k === 13) { if (CARDS[cardFocus] === "out-card") openOutside(); else if (nextKey) openTeam(nextKey); }
+      else if (k === 13) { if (CARDS[cardFocus] === "train-card") openTraining(); else if (nextKey) openTeam(nextKey); }
       else if (k === 10009 || k === 8 || k === 27) cardFocus = -1;
       else return;
       showCardFocus(); e.preventDefault();
@@ -611,8 +621,8 @@
   setInterval(loadWeather, 15 * 60000);
   loadSports();
   loadFantasy();
-  loadOutside();
-  setInterval(function () { sportsTick(); fantasyTick(); outsideTick(); }, 30000);
+  loadTraining();
+  setInterval(function () { sportsTick(); fantasyTick(); trainingTick(); }, 30000);
   // back from an app, or the TV waking: fresh data, and the app list may have changed
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return;
@@ -621,7 +631,7 @@
     if (!w || Date.now() - w.at > 10 * 60000) loadWeather();
     loadSports();
     loadFantasy();
-    outsideTick();
+    trainingTick();
     drawApps();
   });
   // desktop preview only (no TV): #team=<key>, #pick=<button>, #fantasy, #game=<n> or #more opens that panel
@@ -632,7 +642,8 @@
     else if (h[0] === "fantasy") openFantasy();
     else if (h[0] === "game") { var g = hubGames()[+h[1] || 0]; if (g) openFantasyGame(g.id); }
     else if (h[0] === "more") openMore();
-    else if (h[0] === "outside") openOutside();
+    else if (h[0] === "training") openTraining();
+    else if (h[0] === "session") { if (train && train.last) openSession(train.last.id); }
     else if (h[0] === "up") { cardFocus = +h[1] || 0; showCardFocus(); }
   }, 6000);
 })();

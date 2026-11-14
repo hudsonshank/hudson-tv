@@ -112,5 +112,11 @@
   "CLE"
  ],
  "sleeperLeague": "",
- "sleeperUser": ""
+ "sleeperUser": "",
+ "strava": null,
+ "rotation": [
+  "Push",
+  "Pull",
+  "Legs"
+ ]
 }

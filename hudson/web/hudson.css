@@ -192,7 +192,7 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
   background-size: 260% 100%; opacity: .62;
   animation: drift 18s ease-in-out infinite alternate;
 }
-#out-card .tint {
+#train-card .tint {
   background:
     radial-gradient(70% 160% at 0% 50%, var(--c1) 0%, transparent 72%),
     radial-gradient(70% 160% at 100% 50%, var(--c2) 0%, transparent 72%);
@@ -231,18 +231,19 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 .opt.watch.off .what { color: rgba(255, 170, 160, .95); }
 .opt.game .where { color: var(--ink-2); }
 
-/* ---------- outside today ---------- */
-#out-card .ico.big { width: 64px; height: 64px; color: #fff; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .3)); }
-#out-card.alert { border-color: rgba(255, 170, 160, .7); }
-.hours { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 6px 0 4px; }
-.hour { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 0; border-radius: 20px;
-  background: rgba(255, 255, 255, .06); font-size: 24px; color: var(--ink-2); }
-.hour .ico { width: 40px; height: 40px; color: #fff; }
-.hour b { font-size: 32px; color: var(--ink); }
-.hour .r { font-size: 20px; color: #9fd0ff; min-height: 24px; }
-.hour.wet { background: rgba(120, 170, 230, .16); }
-.opt.alertrow { grid-template-columns: 1fr; background: rgba(192, 70, 59, .22); border-color: rgba(255, 170, 160, .5); }
-.opt.alertrow .what { font-weight: 700; }
-.opt.alertrow .note { display: block; grid-column: 1; white-space: pre-line; max-height: 140px; overflow: hidden; }
-.sheet-foot { margin-top: 20px; font-size: 24px; color: var(--ink-3); text-align: center; }
+/* ---------- training week ---------- */
+.mini .dots { flex: none; display: flex; gap: 9px; }
+.dots .d { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.dots i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .55); }
+.dots .on i { background: #fff; border-color: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, .45); }
+.dots em { font-style: normal; font-size: 15px; font-weight: 700; color: rgba(255, 255, 255, .7); }
+.dots .today em { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+.lifts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 32px; margin: 6px 4px 18px; }
+.lift { display: grid; grid-template-columns: 1fr auto; column-gap: 16px; padding: 14px 20px; border-radius: 18px; background: rgba(255, 255, 255, .06); }
+.lift .ename { font-size: 26px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lift .best { font-size: 24px; color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; }
+.lift .enote { grid-column: 1 / -1; font-size: 21px; font-style: italic; color: #ffc9a8; }
+.lift .enote:empty { display: none; }
+.opt.session { grid-template-columns: 220px 1fr auto; }
+#train-card .side { white-space: pre; }
 .app.fantasy { gap: 12px; }
