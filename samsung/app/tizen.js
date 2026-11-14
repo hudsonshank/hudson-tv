@@ -10,6 +10,7 @@
   var S = window.COUCH_TIZEN || {};
   var MAP = window.COUCH_TIZEN_APPS || {};
   var SELF = "CouchTVApp.Home";
+  try { SELF = tizen.application.getCurrentApplication().appInfo.id || SELF; } catch (e) {}
   var BRIDGE = ((location.search.match(/[?&]api=([^&]+)/) || [])[1] || "");
   BRIDGE = decodeURIComponent(BRIDGE);
   var TV_ID = (location.search.match(/[?&]tv=([a-z0-9-]+)/) || [])[1] || "";
@@ -269,4 +270,36 @@
     if (!document.hidden && window.tv && window.tv.resume) window.tv.resume();
     if (!document.hidden && !polling) jobs();
   });
+
+  // ---------- come back to the front when the TV wakes ----------
+  // The TV keeps this app alive through standby (config.xml: background-support="enable"), but
+  // shows Samsung's own home on power on. Once a second the app asks the TV itself (its own
+  // network API on this device) whether it is "on" or in "standby"; on standby -> on it brings
+  // itself forward. No computer or cloud involved.
+  var power = "";
+  function bringForward(why) {
+    if (!document.hidden) { console.log("wake: " + why + ", already in front"); return; }
+    try {
+      tizen.application.launch(SELF,
+        function () { console.log("wake: " + why + ", brought to front"); },
+        function (e) { console.log("wake: launch failed " + (e && e.message)); });
+    } catch (e) { console.log("wake: launch threw " + e.message); }
+  }
+  function readPower() {
+    var x = new XMLHttpRequest();
+    x.open("GET", "http://127.0.0.1:8001/api/v2/");
+    x.timeout = 900;
+    x.onload = function () {
+      var m = /"PowerState"\s*:\s*"(\w+)"/.exec(x.responseText || "");
+      var now = m ? m[1] : "";
+      if (now && now !== power) {
+        console.log("wake: power " + (power || "?") + " -> " + now + ", hidden=" + document.hidden);
+        if (power === "standby" && now === "on") bringForward("power on");
+        power = now;
+      }
+    };
+    x.send();
+  }
+  setInterval(readPower, 1000);
+  readPower();
 })();

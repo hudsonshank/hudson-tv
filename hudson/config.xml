@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hudson TV for the Samsung (Tizen). hudson/build.py packs hudson/web with samsung/app/tizen.js
+     as build/hudson/HudsonTV.wgt. background-support keeps the app alive in standby so it can
+     bring itself forward when the TV is switched on (tizen.js, "come back to the front"). -->
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
+        id="https://github.com/hudsonshank/hudson-tv" version="1.0.0" viewmodes="maximized">
+  <tizen:application id="HudsonHome.TV" package="HudsonHome" required_version="2.3"/>
+  <content src="index.html"/>
+  <name>Hudson TV</name>
+  <icon src="icon.png"/>
+  <access origin="*" subdomains="true"/>
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+  <tizen:privilege name="http://tizen.org/privilege/application.info"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:profile name="tv-samsung"/>
+  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="enable"
+                 encryption="disable" install-location="auto" hwkey-event="enable"/>
+</widget>

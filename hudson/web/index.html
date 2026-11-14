@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Hudson TV</title>
+<link rel="stylesheet" href="hudson.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<!-- the clock sits behind the mountains: photo, glass clock, the mountains cut out of the photo, scrim -->
+<div class="gclock" id="clock" aria-hidden="true"><span class="fill"></span><span class="rim"></span><span class="sheen"></span></div>
+<img class="fg" src="teton-fg.webp" alt="">
+<div class="scrim" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="dateline"><span id="date"></span><span class="sep"></span><span id="now-icon" class="ico"></span><span id="now-temp"></span><span id="place"></span></div>
+</header>
+
+<main class="hello">
+  <div class="eyebrow" id="eyebrow"></div>
+  <h1 id="greeting"></h1>
+  <p class="sub" id="sub"></p>
+</main>
+
+<section class="cards">
+  <article class="card weather" id="weather">
+    <h2><span class="ico" data-icon="partly"></span>Weather</h2>
+    <div class="now"><span class="temp" id="w-temp">--</span><span class="cond"><b id="w-cond">Loading</b><span id="w-hilo"></span></span></div>
+    <div class="days" id="w-days"></div>
+    <div class="sun" id="w-sun"></div>
+  </article>
+  <div class="stack">
+    <article class="card mini" id="nfl-card">
+      <div class="tint" aria-hidden="true"></div><div class="sheen" aria-hidden="true"></div>
+      <div class="logos"><img class="a" alt=""><span class="vs"></span><img class="b" alt=""></div>
+      <div class="body"><b class="title"></b><span class="sub"></span></div>
+      <div class="side"></div>
+    </article>
+    <article class="card mini" id="out-card">
+      <div class="tint" aria-hidden="true"></div><div class="sheen" aria-hidden="true"></div>
+      <span class="ico big" aria-hidden="true"></span>
+      <div class="body"><b class="title"></b><span class="sub"></span></div>
+      <div class="side"></div>
+    </article>
+  </div>
+</section>
+
+<nav class="apps" id="apps"></nav>
+
+<script src="hudson-config.js"></script>
+<script src="sports.js"></script>
+<script src="fantasy.js"></script>
+<script src="outside.js"></script>
+<script src="hudson.js"></script>
+</body>
+</html>

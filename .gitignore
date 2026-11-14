@@ -59,3 +59,6 @@ xcuserdata/
 *.p12
 *.cer
 *.certSigningRequest
+
+# Hudson TV: your own settings (calendar links are private)
+hudson/config.local.json
