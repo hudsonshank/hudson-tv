@@ -285,3 +285,15 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 /* the weather box can take focus too */
 #weather { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
 #weather.focus { border-color: #fff; transform: scale(1.02); box-shadow: 0 0 0 3px rgba(255, 255, 255, .9), 0 20px 50px rgba(0, 0, 0, .3); }
+
+/* team panels: one height for every team; a long conference scrolls inside the panel */
+.panel.wide.team { height: 800px; display: flex; flex-direction: column; overflow: hidden; }
+.panel.team .split { flex: 1 1 auto; min-height: 0; }
+.panel.team .split .col { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.panel.team .table { flex: 1 1 auto; min-height: 0; border-radius: 18px; border: 1.5px solid transparent; transition: border-color .15s ease; }
+.panel.team .table.active { border-color: rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .04); }
+.panel.team .rows { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 4px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 40px), transparent); }
+.panel.team .rows::-webkit-scrollbar { display: none; }
+.panel.team .rows .tr { flex: none; }

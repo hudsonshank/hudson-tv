@@ -503,6 +503,9 @@
     head.className = "tr th";
     head.innerHTML = "<span></span><span>Team</span><span>" + (college ? "Conf" : "W-L") + "</span><span>" + (college ? "Overall" : "GB") + "</span><span>Strk</span>";
     table.appendChild(head);
+    var list = document.createElement("div");
+    list.className = "rows";
+    table.appendChild(list);
     st.rows.forEach(function (r, i) {
       var tr = document.createElement("div");
       tr.className = "tr" + (r.us ? " us" : "");
@@ -514,9 +517,31 @@
       c[2].textContent = college ? r.conf : r.record;
       c[3].textContent = college ? r.record : (r.gb === "0" || r.gb === "-" ? "–" : r.gb);
       c[4].textContent = r.streak;
-      table.appendChild(tr);
+      list.appendChild(tr);
     });
     box.appendChild(table);
+    return list;
+  }
+  // Right moves into the standings, Up/Down then scroll them a row at a time, Left goes back.
+  function standingsKeys(s, list) {
+    if (!list) return;
+    var us = list.querySelector(".us");
+    if (s.scroll != null) list.scrollTop = s.scroll;
+    else if (us) list.scrollTop = Math.max(0, us.offsetTop - (list.clientHeight - us.offsetHeight) / 2);
+    s.scroll = list.scrollTop;
+    list.parentNode.classList.toggle("active", !!s.inTable);
+    s.keys = function (k) {
+      var row = (list.firstChild && list.firstChild.offsetHeight + 4) || 40;
+      if (k === 39 && !s.inTable) s.inTable = true;
+      else if (k === 37 && s.inTable) s.inTable = false;
+      else if (s.inTable && (k === 38 || k === 40)) list.scrollTop += k === 40 ? row : -row;
+      else if (s.inTable && k === 13) return true;
+      else return false;
+      s.scroll = list.scrollTop;
+      list.parentNode.classList.toggle("active", !!s.inTable);
+      s.opts.forEach(function (o, i) { o.el.classList.toggle("focus", i === s.at && !s.inTable); });
+      return true;
+    };
   }
   function openTeam(key, back) {
     var t = TEAMS[key];
@@ -542,7 +567,8 @@
         o.querySelector(".note").textContent = w.note || (w.leaguePass ? "Opens Prime Video. Pick the game in the NBA League Pass channel." : "");
       });
       s.panel = keep;
-      drawTable(cols.right, t, teamStandings(key));
+      s.panel.classList.add("team");
+      standingsKeys(s, drawTable(cols.right, t, teamStandings(key)));
     });
   }
   // the weather: the Cleveland radar loop beside the hourly forecast, which scrolls
@@ -679,6 +705,7 @@
   document.addEventListener("keydown", function (e) {
     var k = e.keyCode;
     if (sheet) {
+      if (sheet.keys && k !== 10009 && k !== 8 && k !== 27 && sheet.keys(k)) { e.preventDefault(); return; }
       var n = sheet.opts.length, c = sheet.cols, at = sheet.at;
       if (k === 38) at = at - c >= 0 ? at - c : at;
       else if (k === 40) at = at + c < n ? at + c : at;
