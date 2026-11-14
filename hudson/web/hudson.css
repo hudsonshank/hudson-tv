@@ -241,20 +241,10 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 #train-card .side { white-space: pre; }
 .app.fantasy { gap: 12px; }
 
-/* ---------- training week: black liquid glass, with a white laser tracing the edge ---------- */
-#train-card { background: rgba(6, 7, 10, .58); border-color: rgba(255, 255, 255, .10);
-  -webkit-backdrop-filter: blur(34px) saturate(120%); backdrop-filter: blur(34px) saturate(120%); }
-#train-card .tint { background: radial-gradient(120% 140% at 15% 0%, rgba(255, 255, 255, .10), transparent 55%),
-  radial-gradient(90% 120% at 100% 100%, rgba(255, 255, 255, .05), transparent 60%); opacity: 1; animation: none; }
-#train-card .sheen { background: linear-gradient(180deg, rgba(255, 255, 255, .12) 0%, rgba(255, 255, 255, .02) 40%, rgba(255, 255, 255, 0) 100%);
+/* ---------- training week: clear black liquid glass ---------- */
+#train-card { background: rgba(6, 7, 10, .2); border-color: rgba(255, 255, 255, .16);
+  -webkit-backdrop-filter: blur(18px) saturate(130%); backdrop-filter: blur(18px) saturate(130%); }
+#train-card .tint { background: radial-gradient(120% 140% at 15% 0%, rgba(255, 255, 255, .07), transparent 55%); opacity: 1; animation: none; }
+#train-card .sheen { background: linear-gradient(180deg, rgba(255, 255, 255, .08) 0%, rgba(255, 255, 255, .02) 40%, rgba(255, 255, 255, 0) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .04); }
-/* the laser: one lap of the border every 6 s at an even speed. Three dashes share a leading end
-   (a short bright head over longer, fainter tails); pathLength="100" makes the lap 100 units. */
-.laser { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
-.laser rect { x: 1px; y: 1px; width: calc(100% - 2px); height: calc(100% - 2px); rx: 25px; fill: none; stroke: #fff;
-  stroke-linecap: round; animation: laser 6s linear infinite; }
-.laser .tail { --len: 34; stroke-width: 2px; stroke-opacity: .32; }
-.laser .mid { --len: 14; stroke-width: 2.5px; stroke-opacity: .7; }
-.laser .head { --len: 5; stroke-width: 3.5px; filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 12px rgba(255, 255, 255, .9)); }
-.laser rect { stroke-dasharray: calc(var(--len) * 1px) calc((100 - var(--len)) * 1px); }
-@keyframes laser { from { stroke-dashoffset: calc(var(--len) * 1px); } to { stroke-dashoffset: calc((var(--len) - 100) * 1px); } }
+#train-card .title, #train-card .sub, #train-card .side, #train-card .dots { text-shadow: 0 1px 10px rgba(0, 0, 0, .55); }
