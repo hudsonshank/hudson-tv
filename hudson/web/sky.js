@@ -1,5 +1,5 @@
-// The Tetons follow the real sky at home: the photo is graded for the light (bright day, golden
-// hour, dusk, night), a grey haze comes in with the cloud cover, stars come out on a clear night, and rain,
+// The Tetons follow the real sky at home: a wash for the light (bright day, golden hour, dusk,
+// night), a grey haze comes in with the cloud cover, stars come out on a clear night, and rain,
 // snow, fog or a storm play over the scene. Driven by Open-Meteo's current weather (already loaded
 // for the weather card) and the day's sunrise and sunset.
 // Layers (index.html): photo, the glass clock, the mountain cut-out, then .sky (a wash for the light
@@ -25,15 +25,6 @@
     else if ((code >= 71 && code <= 77) || code === 85 || code === 86) { m.cover = .9; m.precip = "snow"; m.heavy = code === 75 || code === 86; }
     else if (code >= 95) { m.cover = 1; m.precip = "rain"; m.heavy = true; m.storm = true; }
     return m;
-  }
-
-  // CSS filter for the photo and the cut-out, so the mountains and the sky change together
-  function grade(m) {
-    var f = { day: "brightness(1.06) saturate(1.12)", golden: "brightness(1.04) saturate(1.2) sepia(.22) hue-rotate(-8deg)",
-      dusk: "brightness(.78) saturate(.95) hue-rotate(8deg)", night: "brightness(.42) saturate(.6) hue-rotate(14deg) contrast(1.05)" }[m.light];
-    if (m.cover > .6) f += " saturate(" + (1 - (m.cover - .6) * .9).toFixed(2) + ") contrast(.94)";
-    if (m.precip) f += " brightness(.86)";
-    return f;
   }
 
   // ---------- the page side ----------
@@ -103,11 +94,8 @@
   function apply(m) {
     if (!el.sky && !setup()) return;
     state = m;
-    var g = grade(m), b = document.body;
-    document.querySelector(".bg").style.filter = g;
-    var fg = document.querySelector(".fg");
-    if (fg) fg.style.filter = g;
-    b.setAttribute("data-light", m.light);
+    // the light is plain overlays (hudson.css .sky); no image filters, which cost the TV its frame rate
+    document.body.setAttribute("data-light", m.light);
     el.sky.style.setProperty("--cover", m.cover);
     el.sky.classList.toggle("starry", m.light === "night" && m.cover < .6);
     el.fx.classList.toggle("fog", m.fog);
@@ -120,7 +108,7 @@
   function pause() { cancelAnimationFrame(raf); raf = 0; }
   function resume() { if (state && state.precip && !raf) raf = requestAnimationFrame(frame); }
 
-  var Sky = { mood: mood, grade: grade, apply: apply, pause: pause, resume: resume };
+  var Sky = { mood: mood, apply: apply, pause: pause, resume: resume };
   if (typeof module !== "undefined" && module.exports) module.exports = Sky;
   else root.Sky = Sky;
 })(this);

@@ -447,8 +447,9 @@
     el.innerHTML = '<div class="panel"></div>';
     document.body.appendChild(el);
     sheet = { el: el, panel: el.firstChild, opts: [], cols: 1, at: 0, build: build };
-    sheet.refresh = function () { var at = sheet.at; sheet.panel.innerHTML = ""; sheet.opts = []; build(sheet); sheet.at = Math.min(at, sheet.opts.length - 1); sheetFocus(); };
+    sheet.refresh = function () { var at = sheet.at; sheet.panel.innerHTML = ""; sheet.opts = []; build(sheet); sheet.at = Math.min(at, sheet.opts.length - 1); sheetFocus(); alignGlass(sheet.el); };
     sheet.refresh();
+    alignGlass(el);
     showFocus();
   }
   function closeSheet(quiet) {
@@ -703,7 +704,7 @@
   // ---------- the remote ----------
   // Focus lives in the bottom row. Up reaches the boxes: training first, the game box above it,
   // Left and Right cross to the weather box; Down from a bottom box comes back to the row.
-  var cardAt = null, BOXES = ["weather", "nfl-card", "train-card"];
+  var cardAt = null, BOXES = ["weather", "nfl-card", "train-card", "nowplaying"];
   function showCardFocus() {
     BOXES.forEach(function (id) { $(id).classList.toggle("focus", id === cardAt && !sheet); });
     showFocus();
@@ -711,6 +712,7 @@
   function openBox(id) {
     if (id === "weather") openWeather();
     else if (id === "train-card") openTraining();
+    else if (id === "nowplaying") { if (music) music.toggle(); }
     else if (nextKey) openTeam(nextKey);
   }
   document.addEventListener("keydown", function (e) {
@@ -730,8 +732,9 @@
     }
     if (cardAt) {
       if (k === 38 && cardAt === "train-card") cardAt = "nfl-card";
-      else if (k === 40) cardAt = cardAt === "nfl-card" ? "train-card" : null;
-      else if (k === 37 && cardAt !== "weather") cardAt = "weather";
+      else if (k === 38 && (cardAt === "nfl-card" || cardAt === "weather") && music) cardAt = "nowplaying";
+      else if (k === 40) cardAt = cardAt === "nowplaying" ? "weather" : cardAt === "nfl-card" ? "train-card" : null;
+      else if (k === 37 && cardAt !== "weather" && cardAt !== "nowplaying") cardAt = "weather";
       else if (k === 39 && cardAt === "weather") cardAt = "train-card";
       else if (k === 13) openBox(cardAt);
       else if (k === 10009 || k === 8 || k === 27) cardAt = null;
@@ -753,6 +756,13 @@
   function showSong(song, status) {
     log("music " + status + (song ? ": " + song.title : ""));
     var el = $("nowplaying");
+    if (status === "off") {
+      el.setAttribute("data-song", "");
+      el.innerHTML = "<span>Music</span><b>Muted · OK to play</b>";
+      el.classList.add("on", "muted");
+      return;
+    }
+    el.classList.remove("muted");
     if (!song) { el.classList.remove("on"); return; }
     var text = song.title + (song.artist ? "  ·  " + song.artist : "");
     if (el.getAttribute("data-song") === text) { el.classList.add("on"); return; }
@@ -769,10 +779,45 @@
     if ((e.keyCode === 10252 || e.keyCode === 179) && music) { music.toggle(); e.preventDefault(); }
   }, true);
 
+  // ---------- frosted glass, cheaply ----------
+  // Cards and panels show a pre-blurred copy of the photo (teton-blur.jpg) lined up with the scene,
+  // instead of a live backdrop blur, which drops the TV to about 10 frames a second.
+  function pagePos(el) {
+    var x = 0, y = 0;
+    for (var n = el; n && n !== document.body; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; }
+    return { x: x, y: y };
+  }
+  function alignGlass(root) {
+    var list = (root || document).querySelectorAll(".card, .panel");
+    for (var i = 0; i < list.length; i++) {
+      var p = pagePos(list[i]);
+      list[i].style.setProperty("--bx", -p.x + "px");
+      list[i].style.setProperty("--by", -p.y + "px");
+    }
+  }
+
+  // ---------- frame rate (test builds with --log-url only) ----------
+  if (window.COUCH_TIZEN && window.COUCH_TIZEN.log) (function () {
+    var frames = 0, worst = 0, prev = 0, from = 0, rounds = 0;
+    function f(t) {
+      if (prev) worst = Math.max(worst, t - prev);
+      prev = t; frames++;
+      if (!from) from = t;
+      if (t - from >= 5000) {
+        log("fps " + Math.round(frames * 1000 / (t - from)) + ", slowest frame " + Math.round(worst) + " ms");
+        frames = 0; worst = 0; from = t;
+        if (++rounds >= 12) return;
+      }
+      requestAnimationFrame(f);
+    }
+    setTimeout(function () { requestAnimationFrame(f); }, 3000);
+  })();
+
   // ---------- start ----------
   $("eyebrow").textContent = C.place || "";
   games = kept("games") || {};
   paintIcons();
+  alignGlass();
   drawWeather(kept("weather"));
   tick();
   drawApps();

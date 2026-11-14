@@ -38,7 +38,6 @@ body { position: relative; color: var(--ink); font-family: "Inter", system-ui, s
   --top: 96px; --size: 430px;
   position: absolute; left: 0; right: 0; top: var(--top); text-align: center; white-space: nowrap;
   font-family: "Antonio", "Inter", sans-serif; font-weight: 300; font-size: var(--size); line-height: .82; letter-spacing: -.02em;
-  filter: drop-shadow(0 6px 28px rgba(0, 0, 0, .16));
 }
 .gclock .fill {
   display: block; padding: .2em 0; margin: -.2em 0; color: transparent;
@@ -62,8 +61,10 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 .cards { position: absolute; left: var(--pad); right: var(--pad); bottom: 152px; height: 248px; display: flex; gap: 24px; }
 .card {
   position: relative; height: 100%; padding: 24px 32px; border-radius: 30px;
-  background: var(--glass); border: 1.5px solid var(--glass-edge);
-  -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%);
+  /* frosted glass without a live blur: a pre-blurred copy of the photo, lined up behind the card
+     by alignGlass() in hudson.js (a live backdrop blur halves the TV's frame rate) */
+  background: linear-gradient(var(--glass), var(--glass)), url("teton-blur.jpg") var(--bx, 0px) var(--by, 0px) / 1920px 1080px no-repeat;
+  border: 1.5px solid var(--glass-edge);
   box-shadow: 0 18px 50px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .10);
   overflow: hidden;
 }
@@ -112,8 +113,7 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
   flex: none; height: 64px; padding: 0 28px; border-radius: 999px;
   display: inline-flex; align-items: center;
   font-size: 26px; font-weight: 500; color: var(--ink);
-  background: rgba(20, 24, 36, .40); border: 1.5px solid var(--glass-edge);
-  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  background: rgba(20, 24, 36, .55); border: 1.5px solid var(--glass-edge);
   transition: transform .16s ease, background-color .16s ease, color .16s ease;
 }
 .app.focus { background: #fff; color: #111622; border-color: #fff; transform: scale(1.08); box-shadow: 0 10px 30px rgba(0, 0, 0, .28); }
@@ -145,8 +145,7 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 }
 .panel {
   width: 1180px; max-height: 900px; overflow: hidden; padding: 40px 44px 36px; border-radius: 36px;
-  background: rgba(22, 26, 40, .72); border: 1.5px solid var(--glass-edge);
-  -webkit-backdrop-filter: blur(40px) saturate(150%); backdrop-filter: blur(40px) saturate(150%);
+  background: linear-gradient(rgba(22, 26, 40, .8), rgba(22, 26, 40, .8)), url("teton-blur.jpg") var(--bx, 0px) var(--by, 0px) / 1920px 1080px no-repeat; border: 1.5px solid var(--glass-edge);
   box-shadow: 0 30px 90px rgba(0, 0, 0, .45);
 }
 .sheet-head { display: flex; align-items: center; gap: 22px; margin-bottom: 24px; }
@@ -190,13 +189,12 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 #nfl-card .tint {
   background: linear-gradient(115deg, var(--c1) 0%, var(--c2) 35%, var(--c1) 70%, var(--c2) 100%);
   background-size: 260% 100%; opacity: .62;
-  animation: drift 18s ease-in-out infinite alternate;
+  background-position: 40% 50%;
 }
 .mini .sheen {
   background: linear-gradient(180deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, .03) 46%, rgba(0, 0, 0, .10) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), inset 0 -1px 0 rgba(0, 0, 0, .12);
 }
-@keyframes drift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
 @keyframes breathe { from { opacity: .42; } to { opacity: .6; } }
 .mini .logos { flex: none; display: flex; align-items: center; gap: 12px; }
 .mini .logos img { width: 66px; height: 66px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .35)); }
@@ -242,8 +240,7 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 .app.fantasy { gap: 12px; }
 
 /* ---------- training week: clear black liquid glass ---------- */
-#train-card { background: rgba(6, 7, 10, .2); border-color: rgba(255, 255, 255, .16);
-  -webkit-backdrop-filter: blur(18px) saturate(130%); backdrop-filter: blur(18px) saturate(130%); }
+#train-card { background: linear-gradient(rgba(6, 7, 10, .3), rgba(6, 7, 10, .3)), url("teton-blur.jpg") var(--bx, 0px) var(--by, 0px) / 1920px 1080px no-repeat; border-color: rgba(255, 255, 255, .16); }
 #train-card .tint { background: radial-gradient(120% 140% at 15% 0%, rgba(255, 255, 255, .07), transparent 55%); opacity: 1; animation: none; }
 #train-card .sheen { background: linear-gradient(180deg, rgba(255, 255, 255, .08) 0%, rgba(255, 255, 255, .02) 40%, rgba(255, 255, 255, 0) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(255, 255, 255, .04); }
@@ -299,18 +296,15 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
 .panel.team .rows .tr { flex: none; }
 
 /* ---------- the live sky (sky.js): light over the whole scene, never clipped to the peaks ---------- */
-.bg, .fg { transition: filter 4s ease; }
 .sky { position: absolute; inset: 0; pointer-events: none; --cover: 0; }
 .sky::before, .sky::after { content: ""; position: absolute; inset: 0; transition: opacity 4s ease, background 4s ease; }
-/* the time of day: a soft wash, strongest at the top of the sky, gone by the valley */
-.sky::before { mix-blend-mode: soft-light; opacity: .9;
-  background: radial-gradient(520px 340px at 78% 10%, rgba(255, 248, 220, .9), transparent 70%),
-              linear-gradient(180deg, rgba(60, 130, 220, .95) 0%, rgba(110, 170, 235, .6) 40%, rgba(255, 255, 255, 0) 75%); }
-body[data-light="golden"] .sky::before { background: radial-gradient(700px 360px at 80% 55%, rgba(255, 190, 110, .9), transparent 70%),
-  linear-gradient(180deg, rgba(90, 110, 190, .6) 0%, rgba(255, 170, 100, .7) 55%, rgba(255, 210, 150, .25) 85%); }
-body[data-light="dusk"] .sky::before { background: linear-gradient(180deg, rgba(60, 50, 130, .8) 0%, rgba(220, 120, 150, .6) 55%, rgba(255, 190, 160, .2) 85%); }
-body[data-light="night"] .sky::before { mix-blend-mode: multiply; opacity: 1;
-  background: linear-gradient(180deg, rgba(20, 28, 70, .95) 0%, rgba(40, 52, 110, .8) 50%, rgba(70, 80, 130, .6) 100%); }
+/* the time of day: plain see-through washes over the whole scene, strongest in the sky */
+.sky::before { background: radial-gradient(520px 340px at 78% 10%, rgba(255, 246, 215, .28), transparent 70%),
+  linear-gradient(180deg, rgba(70, 140, 230, .34) 0%, rgba(110, 170, 235, .16) 42%, transparent 72%); }
+body[data-light="golden"] .sky::before { background: radial-gradient(700px 360px at 80% 55%, rgba(255, 175, 95, .3), transparent 70%),
+  linear-gradient(180deg, rgba(90, 100, 180, .16) 0%, rgba(255, 160, 90, .22) 55%, rgba(255, 200, 140, .08) 85%); }
+body[data-light="dusk"] .sky::before { background: linear-gradient(180deg, rgba(40, 32, 100, .42) 0%, rgba(200, 110, 150, .2) 55%, rgba(20, 16, 40, .22) 100%); }
+body[data-light="night"] .sky::before { background: linear-gradient(180deg, rgba(3, 6, 20, .78) 0%, rgba(6, 12, 34, .62) 45%, rgba(4, 8, 22, .58) 100%); }
 /* the cloud cover: a grey haze over the sky that thins out toward the valley */
 .sky::after { opacity: calc(var(--cover) * .75);
   background: linear-gradient(180deg, rgba(150, 156, 168, .9) 0%, rgba(170, 175, 186, .65) 35%, rgba(180, 184, 194, .25) 62%, transparent 85%); }
@@ -318,8 +312,7 @@ body[data-light="night"] .sky::after { background: linear-gradient(180deg, rgba(
 /* stars only high in the sky, fading out well above the peaks */
 .sky .stars { position: absolute; inset: 0; width: 1920px; height: 1080px; opacity: 0; transition: opacity 4s ease; z-index: 1;
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 18%, transparent 32%); mask-image: linear-gradient(180deg, #000 0%, #000 18%, transparent 32%); }
-.sky.starry .stars { opacity: .9; animation: twinkle 5s ease-in-out infinite alternate; }
-@keyframes twinkle { from { opacity: .7; } to { opacity: .95; } }
+.sky.starry .stars { opacity: .85; }
 
 /* weather in front of the scene */
 .weatherfx { position: absolute; inset: 0; pointer-events: none; }
@@ -340,3 +333,9 @@ body[data-light="night"] .sky::after { background: linear-gradient(180deg, rgba(
 .nowplaying b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
 
+/* the Now playing line can take focus (Up from the boxes): OK mutes or unmutes */
+.nowplaying { padding: 8px 14px; margin: -8px -14px; border-radius: 14px; border: 1.5px solid transparent;
+  transition: opacity 1.2s ease, background-color .15s ease, border-color .15s ease; }
+.nowplaying.focus { opacity: 1; background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .7); color: #fff; }
+.nowplaying.focus span { color: rgba(255, 255, 255, .75); }
+.nowplaying.muted b { font-style: italic; }
