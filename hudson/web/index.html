@@ -11,8 +11,13 @@
 <!-- the clock sits behind the mountains: photo, glass clock, the mountains cut out of the photo, scrim -->
 <div class="gclock" id="clock" aria-hidden="true"><span class="fill"></span><span class="rim"></span><span class="sheen"></span></div>
 <img class="fg" src="teton-fg.webp" alt="">
+<!-- the light and weather at home, over the whole scene (sky.js): a wash for the time of day and
+     the cloud cover, stars high in a clear night sky, fog in the valley, rain or snow, a storm's flash -->
+<div class="sky" aria-hidden="true"><canvas class="stars"></canvas></div>
+<div class="weatherfx" aria-hidden="true"><div class="fogband"></div><canvas class="precip"></canvas><div class="bolt"></div></div>
 <div class="scrim" aria-hidden="true"></div>
 
+<div class="nowplaying" id="nowplaying" aria-live="polite"></div>
 <header class="top">
   <div class="dateline"><span id="date"></span><span class="sep"></span><span id="now-icon" class="ico"></span><span id="now-temp"></span><span id="place"></span></div>
 </header>
@@ -52,6 +57,8 @@
 <script src="sports.js"></script>
 <script src="fantasy.js"></script>
 <script src="training.js"></script>
+<script src="sky.js"></script>
+<script src="music.js"></script>
 <script src="hudson.js"></script>
 </body>
 </html>

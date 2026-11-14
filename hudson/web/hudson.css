@@ -297,3 +297,46 @@ h1 { margin-top: 10px; font-size: 80px; font-weight: 700; letter-spacing: -.015e
   mask-image: linear-gradient(180deg, transparent 0, #000 26px, #000 calc(100% - 40px), transparent); }
 .panel.team .rows::-webkit-scrollbar { display: none; }
 .panel.team .rows .tr { flex: none; }
+
+/* ---------- the live sky (sky.js): light over the whole scene, never clipped to the peaks ---------- */
+.bg, .fg { transition: filter 4s ease; }
+.sky { position: absolute; inset: 0; pointer-events: none; --cover: 0; }
+.sky::before, .sky::after { content: ""; position: absolute; inset: 0; transition: opacity 4s ease, background 4s ease; }
+/* the time of day: a soft wash, strongest at the top of the sky, gone by the valley */
+.sky::before { mix-blend-mode: soft-light; opacity: .9;
+  background: radial-gradient(520px 340px at 78% 10%, rgba(255, 248, 220, .9), transparent 70%),
+              linear-gradient(180deg, rgba(60, 130, 220, .95) 0%, rgba(110, 170, 235, .6) 40%, rgba(255, 255, 255, 0) 75%); }
+body[data-light="golden"] .sky::before { background: radial-gradient(700px 360px at 80% 55%, rgba(255, 190, 110, .9), transparent 70%),
+  linear-gradient(180deg, rgba(90, 110, 190, .6) 0%, rgba(255, 170, 100, .7) 55%, rgba(255, 210, 150, .25) 85%); }
+body[data-light="dusk"] .sky::before { background: linear-gradient(180deg, rgba(60, 50, 130, .8) 0%, rgba(220, 120, 150, .6) 55%, rgba(255, 190, 160, .2) 85%); }
+body[data-light="night"] .sky::before { mix-blend-mode: multiply; opacity: 1;
+  background: linear-gradient(180deg, rgba(20, 28, 70, .95) 0%, rgba(40, 52, 110, .8) 50%, rgba(70, 80, 130, .6) 100%); }
+/* the cloud cover: a grey haze over the sky that thins out toward the valley */
+.sky::after { opacity: calc(var(--cover) * .75);
+  background: linear-gradient(180deg, rgba(150, 156, 168, .9) 0%, rgba(170, 175, 186, .65) 35%, rgba(180, 184, 194, .25) 62%, transparent 85%); }
+body[data-light="night"] .sky::after { background: linear-gradient(180deg, rgba(20, 22, 30, .9), rgba(28, 31, 42, .5) 50%, transparent 85%); }
+/* stars only high in the sky, fading out well above the peaks */
+.sky .stars { position: absolute; inset: 0; width: 1920px; height: 1080px; opacity: 0; transition: opacity 4s ease; z-index: 1;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 18%, transparent 32%); mask-image: linear-gradient(180deg, #000 0%, #000 18%, transparent 32%); }
+.sky.starry .stars { opacity: .9; animation: twinkle 5s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: .7; } to { opacity: .95; } }
+
+/* weather in front of the scene */
+.weatherfx { position: absolute; inset: 0; pointer-events: none; }
+.weatherfx .precip { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+.weatherfx .fogband { position: absolute; left: 0; right: 0; top: 380px; height: 520px; opacity: 0; transition: opacity 4s ease;
+  background: linear-gradient(180deg, transparent, rgba(225, 228, 236, .55) 40%, rgba(225, 228, 236, .4) 70%, transparent); filter: blur(10px); }
+.weatherfx.fog .fogband { opacity: 1; }
+.weatherfx.wet::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(40, 52, 72, .28), rgba(20, 26, 38, .18)); }
+.weatherfx .bolt { position: absolute; inset: 0; background: rgba(230, 236, 255, .55); opacity: 0; }
+.weatherfx.flash .bolt { animation: bolt 1.1s ease-out; }
+@keyframes bolt { 0% { opacity: 0; } 6% { opacity: .9; } 12% { opacity: .1; } 18% { opacity: .7; } 100% { opacity: 0; } }
+
+/* ---------- now playing: faint white text, top left ---------- */
+.nowplaying { position: absolute; left: 96px; top: 46px; max-width: 560px; font-size: 22px; color: rgba(255, 255, 255, .62);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .35); opacity: 0; transition: opacity 1.2s ease; z-index: 2; }
+.nowplaying.on { opacity: 1; }
+.nowplaying span { display: block; font-size: 15px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: rgba(255, 255, 255, .45); margin-bottom: 4px; }
+.nowplaying b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+

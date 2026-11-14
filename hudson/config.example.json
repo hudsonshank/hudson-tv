@@ -118,5 +118,9 @@
   "Push",
   "Pull",
   "Legs"
- ]
+ ],
+ "music": {
+  "station": "folkfwd",
+  "volume": 0.5
+ }
 }

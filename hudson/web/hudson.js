@@ -105,8 +105,19 @@
       try { var w = JSON.parse(text); w.at = Date.now(); store("weather", w); drawWeather(w); } catch (e) { log("weather " + e); }
     });
   }
+  // the Tetons follow the sky at home (sky.js). Preview only: #sky=<weather code>,<day|golden|dusk|night>
+  function applySky(w) {
+    if (!window.Sky || !w || !w.current || !w.daily) return;
+    var now = Date.now(), d = w.daily, today = new Date(), key = today.getFullYear() + "-" + ("0" + (today.getMonth() + 1)).slice(-2) + "-" + ("0" + today.getDate()).slice(-2);
+    var i = Math.max(0, d.time.indexOf(key));
+    var m = window.Sky.mood(w.current.weather_code, w.current.is_day, now, new Date(d.sunrise[i]).getTime(), new Date(d.sunset[i]).getTime());
+    var force = !window.TVOS && /[#&]sky=(\d+),?(\w*)/.exec(location.hash);
+    if (force) { m = window.Sky.mood(+force[1], 1, now, now - 5 * 3600000, now + 5 * 3600000); if (force[2]) m.light = force[2]; }
+    window.Sky.apply(m);
+  }
   function drawWeather(w) {
     if (!w || !w.current || !w.daily) return;
+    applySky(w);
     var cur = w.current, d = w.daily, s = sky(cur.weather_code, cur.is_day);
     var temp = Math.round(cur.temperature_2m) + "°";
     $("w-temp").textContent = temp;
@@ -737,6 +748,27 @@
     e.preventDefault();
   });
 
+  // ---------- music: a SomaFM station, and a faint "Now playing" line ----------
+  var music = null;
+  function showSong(song, status) {
+    log("music " + status + (song ? ": " + song.title : ""));
+    var el = $("nowplaying");
+    if (!song) { el.classList.remove("on"); return; }
+    var text = song.title + (song.artist ? "  ·  " + song.artist : "");
+    if (el.getAttribute("data-song") === text) { el.classList.add("on"); return; }
+    el.classList.remove("on");
+    setTimeout(function () {
+      el.setAttribute("data-song", text);
+      el.innerHTML = "<span>Now playing</span><b></b>";
+      el.querySelector("b").textContent = text;
+      el.classList.add("on");
+    }, 600);
+  }
+  try { tizen.tvinputdevice.registerKey("MediaPlayPause"); } catch (e) {}
+  document.addEventListener("keydown", function (e) {
+    if ((e.keyCode === 10252 || e.keyCode === 179) && music) { music.toggle(); e.preventDefault(); }
+  }, true);
+
   // ---------- start ----------
   $("eyebrow").textContent = C.place || "";
   games = kept("games") || {};
@@ -750,9 +782,11 @@
   loadSports();
   loadFantasy();
   loadTraining();
+  if (window.Music && C.music) music = window.Music.start(C.music, get, showSong);
   setInterval(function () { sportsTick(); fantasyTick(); trainingTick(); }, 30000);
   // back from an app, or the TV waking: fresh data, and the app list may have changed
   document.addEventListener("visibilitychange", function () {
+    if (window.Sky) { if (document.hidden) window.Sky.pause(); else window.Sky.resume(); }
     if (document.hidden) return;
     lastMinute = -1; tick();
     var w = kept("weather");
