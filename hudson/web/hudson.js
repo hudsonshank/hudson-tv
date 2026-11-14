@@ -272,7 +272,6 @@
   function trainingTick() { if (Date.now() - trainAt > 15 * 60000) loadTraining(); }
   function drawTraining() {
     var el = $("train-card"), dots = el.querySelector(".dots");
-    tint(el, "#e4572e", "#7a1f3d");
     var today = (new Date().getDay() + 6) % 7;
     dots.innerHTML = "";
     "MTWTFSS".split("").forEach(function (l, i) {
