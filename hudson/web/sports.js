@@ -93,7 +93,50 @@
     }).sort(function (a, b) { return (b.state === "in") - (a.state === "in") || a.start - b.start; });
   }
 
-  var Sports = { normalize: normalize, where: where, fetchTeam: fetchTeam, upcoming: upcoming };
+  // ---------- standings ----------
+  // The smallest group holding the team: the NFL division, the NBA conference, the college
+  // conference. ESPN's v2 standings, by division for the NFL (level=3).
+  function pct(rec) {
+    var m = /^(\d+)-(\d+)(?:-(\d+))?$/.exec(rec || "");
+    if (!m) return -1;
+    var w = +m[1], l = +m[2], t = +(m[3] || 0), n = w + l + t;
+    return n ? (w + t / 2) / n : 0;
+  }
+  function parseStandings(d, team) {
+    var best = null;
+    (function walk(node) {
+      var ents = (node.standings && node.standings.entries) || [];
+      if (ents.some(function (e) { return String(e.team.id) === String(team.id); }) && (!best || ents.length < best.ents.length))
+        best = { name: node.name || node.abbreviation || "", short: node.abbreviation || "", ents: ents };
+      (node.children || []).forEach(walk);
+    })(d);
+    if (!best) return null;
+    var rows = best.ents.map(function (e) {
+      var st = {};
+      (e.stats || []).forEach(function (x) { st[x.name] = x.displayValue != null ? x.displayValue : x.value; });
+      var overall = st.overall || ((st.wins || 0) + "-" + (st.losses || 0) + (st.ties && st.ties !== "0" ? "-" + st.ties : ""));
+      return {
+        id: String(e.team.id), abbr: e.team.abbreviation, name: e.team.shortDisplayName || e.team.displayName,
+        logo: e.team.logos && e.team.logos[0] ? e.team.logos[0].href : "",
+        record: overall, conf: st["vs. Conf."] || "", gb: st.gamesBehind || "", streak: st.streak || "",
+        seed: parseInt(st.playoffSeed, 10) || 99, us: String(e.team.id) === String(team.id)
+      };
+    });
+    if (team.sport === "nba") rows.sort(function (a, b) { return a.seed - b.seed; });
+    else if (team.sport === "college") rows.sort(function (a, b) { return pct(b.conf) - pct(a.conf) || pct(b.record) - pct(a.record); });
+    else rows.sort(function (a, b) { return pct(b.record) - pct(a.record) || a.seed - b.seed; });
+    return { name: best.name, rows: rows };
+  }
+  function fetchStandings(team, get, done) {
+    get("https://site.api.espn.com/apis/v2/sports/" + team.league + "/standings" + (team.sport === "nfl" ? "?level=3" : ""), 20000,
+      function (err, text) {
+        if (err) { done(err); return; }
+        try { done(null, parseStandings(JSON.parse(text), team)); } catch (e) { done(String(e)); }
+      });
+  }
+
+  var Sports = { normalize: normalize, where: where, fetchTeam: fetchTeam, upcoming: upcoming,
+    parseStandings: parseStandings, fetchStandings: fetchStandings };
   if (typeof module !== "undefined" && module.exports) module.exports = Sports;
   else root.Sports = Sports;
 })(this);

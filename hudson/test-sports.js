@@ -38,6 +38,17 @@ assert.strictEqual(S.where(game([["CW"]]), unc, cfg).app, "youtubetv");
 assert.strictEqual(S.where(game([["ESPN+"]]), unc, cfg).app, null);
 assert.strictEqual(S.where(game([]), unc, cfg).label, "TV to be announced");
 
+// standings: the smallest group holding the team, sorted for its league
+function ent(id, abbr, stats) { return { team: { id: id, abbreviation: abbr, shortDisplayName: abbr }, stats: Object.keys(stats).map(function (k) { return { name: k, displayValue: stats[k] }; }) }; }
+var nfl = { children: [{ name: "NFC", standings: { entries: [ent(29, "CAR", { overall: "3-5" }), ent(1, "X", { overall: "9-0" }), ent(2, "Y", {}), ent(3, "Z", {})] },
+  children: [{ name: "NFC South", standings: { entries: [ent(18, "NO", { overall: "3-5", playoffSeed: "12" }), ent(29, "CAR", { overall: "3-5", playoffSeed: "4" }), ent(27, "TB", { overall: "3-6" })] } }] }] };
+var st = S.parseStandings(nfl, panthers);
+assert.strictEqual(st.name, "NFC South");
+assert.deepStrictEqual(st.rows.map(function (r) { return r.abbr; }), ["CAR", "NO", "TB"]);
+assert.ok(st.rows[0].us);
+var acc = { children: [{ name: "ACC", standings: { entries: [ent(153, "UNC", { overall: "5-4", "vs. Conf.": "2-3" }), ent(1, "DUKE", { overall: "6-3", "vs. Conf.": "4-1" })] } }] };
+assert.deepStrictEqual(S.parseStandings(acc, unc).rows.map(function (r) { return r.abbr; }), ["DUKE", "UNC"]);
+assert.strictEqual(S.parseStandings({ children: [] }, unc), null);
 console.log("sports rules: all checks passed");
 
 if (process.argv.indexOf("--live") >= 0) {

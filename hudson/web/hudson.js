@@ -98,6 +98,7 @@
     if (C.lat === undefined) return;
     var url = "https://api.open-meteo.com/v1/forecast?latitude=" + C.lat + "&longitude=" + C.lon +
       "&current=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset" +
+      "&hourly=temperature_2m,precipitation_probability,weather_code,is_day,wind_speed_10m&wind_speed_unit=mph" +
       "&temperature_unit=fahrenheit&timezone=auto&forecast_days=5";
     get(url, 15000, function (err, text) {
       if (err) { log("weather " + err); return; }
@@ -410,7 +411,7 @@
     showFocus();
   }
   function showFocus() {
-    items.forEach(function (it, i) { it.el.classList.toggle("focus", i === focus && !sheet && !(cardFocus >= 0)); });
+    items.forEach(function (it, i) { it.el.classList.toggle("focus", i === focus && !sheet && !cardAt); });
     var el = items[focus] && items[focus].el, track = document.querySelector(".apps .track");
     if (!el || !track) return;
     var nav = $("apps"), right = el.offsetLeft + el.offsetWidth + 120, shift = 0;
@@ -469,13 +470,64 @@
     return o;
   }
 
+  var standings = {};   // team key -> {at, data}
+  function teamStandings(key) {
+    var c = standings[key];
+    if (c && Date.now() - c.at < 30 * 60000) return c.data;
+    if (!c || !c.loading) {
+      standings[key] = { at: c ? c.at : 0, data: c ? c.data : null, loading: true };
+      window.Sports.fetchStandings(TEAMS[key], get, function (err, d) {
+        standings[key] = { at: Date.now(), data: err ? (c && c.data) : d };
+        if (err) log("standings " + key + " " + err);
+        if (sheet && sheet.team === key && sheet.refresh) sheet.refresh();
+      });
+    }
+    return c ? c.data : null;
+  }
+  function split(s) {
+    s.panel.classList.add("wide");
+    var row = document.createElement("div"), left = document.createElement("div"), right = document.createElement("div");
+    row.className = "split"; left.className = "col"; right.className = "col side-col";
+    row.appendChild(left); row.appendChild(right);
+    s.panel.appendChild(row);
+    return { left: left, right: right };
+  }
+  function drawTable(box, t, st) {
+    var h = document.createElement("h4");
+    h.textContent = st ? st.name : "Standings";
+    box.appendChild(h);
+    if (!st) { var p = document.createElement("p"); p.className = "muted"; p.textContent = "Loading standings…"; box.appendChild(p); return; }
+    var college = t.sport === "college", table = document.createElement("div");
+    table.className = "table" + (st.rows.length > 10 ? " dense" : "");
+    var head = document.createElement("div");
+    head.className = "tr th";
+    head.innerHTML = "<span></span><span>Team</span><span>" + (college ? "Conf" : "W-L") + "</span><span>" + (college ? "Overall" : "GB") + "</span><span>Strk</span>";
+    table.appendChild(head);
+    st.rows.forEach(function (r, i) {
+      var tr = document.createElement("div");
+      tr.className = "tr" + (r.us ? " us" : "");
+      tr.innerHTML = '<span class="rk"></span><span class="tm"><img alt=""><b></b></span><span></span><span></span><span></span>';
+      var c = tr.children;
+      c[0].textContent = i + 1;
+      c[1].querySelector("img").src = r.logo;
+      c[1].querySelector("b").textContent = r.name;
+      c[2].textContent = college ? r.conf : r.record;
+      c[3].textContent = college ? r.record : (r.gb === "0" || r.gb === "-" ? "–" : r.gb);
+      c[4].textContent = r.streak;
+      table.appendChild(tr);
+    });
+    box.appendChild(table);
+  }
   function openTeam(key, back) {
     var t = TEAMS[key];
     openSheet(function (s) {
       s.back = back;
+      s.team = key;
       var up = allUpcoming([key]);
       head(s, t.logo, t.full || t.name, up.length ? "Next " + Math.min(up.length, 5) + " games" : "");
-      if (!up.length) { opt(s, "note", "<span class='what'>No games scheduled right now.</span>", null); return; }
+      var cols = split(s), keep = s.panel;
+      s.panel = cols.left;
+      if (!up.length) opt(s, "note", "<span class='what'>No games scheduled right now.</span>", null);
       up.slice(0, 5).forEach(function (g) {
         var w = window.Sports.where(g, t, C);
         var o = opt(s, "game" + (g.state === "in" ? " now" : "") + (w.app ? "" : " off"),
@@ -484,11 +536,52 @@
             if (w.app) { closeSheet(true); openService(w.app); }
           });
         o.querySelector(".logo").src = g.opponentLogo || t.logo;
-        o.querySelector(".when").textContent = g.state === "in" ? "LIVE " + scoreText(g) : whenText(g);
+        o.querySelector(".when").textContent = g.state === "in" ? "LIVE " + scoreText(g) : whenText(g, true);
         o.querySelector(".what").textContent = matchup(g, true);
-        o.querySelector(".where").textContent = w.app ? "Watch on " + w.label : w.label;
+        o.querySelector(".where").textContent = w.app ? w.label.replace(/^YouTube TV · /, "YouTube TV · ") : w.label;
         o.querySelector(".note").textContent = w.note || (w.leaguePass ? "Opens Prime Video. Pick the game in the NBA League Pass channel." : "");
       });
+      s.panel = keep;
+      drawTable(cols.right, t, teamStandings(key));
+    });
+  }
+  // the weather: the Cleveland radar loop beside the hourly forecast, which scrolls
+  function openWeather(back) {
+    openSheet(function (s) {
+      s.back = back;
+      var w = kept("weather"), cur = w && w.current;
+      head(s, null, "Weather · " + (C.place || ""), cur ? Math.round(cur.temperature_2m) + "° " + sky(cur.weather_code, cur.is_day).text.toLowerCase() + " now" : "");
+      var cols = split(s);
+      cols.left.classList.add("radar-col");
+      var img = document.createElement("img");
+      img.className = "radar";
+      img.alt = "";
+      img.src = (C.radar || "https://radar.weather.gov/ridge/standard/KCLE_loop.gif") + "?t=" + Math.floor(Date.now() / 300000);
+      cols.left.appendChild(img);
+      var cap = document.createElement("p");
+      cap.className = "muted";
+      cap.textContent = "Radar, last hour · National Weather Service, Cleveland";
+      cols.left.appendChild(cap);
+      cols.right.classList.add("hours-col");
+      var keep = s.panel;
+      s.panel = cols.right;
+      var h = w && w.hourly, now = Date.now(), shown = 0;
+      (h ? h.time : []).forEach(function (t, i) {
+        var p = t.split(/[-T:]/), ms = new Date(+p[0], +p[1] - 1, +p[2], +p[3]).getTime();
+        if (ms + 3600000 <= now || shown >= 48) return;
+        shown++;
+        var d = new Date(ms), first = shown === 1 || d.getHours() === 0;
+        var o = opt(s, "hourrow" + (h.precipitation_probability[i] >= 40 ? " wet" : ""),
+          '<span class="when"></span><span class="ico"></span><b class="temp"></b><span class="rain"></span><span class="wind"></span>', null);
+        o.querySelector(".when").textContent = (shown === 1 ? "Now" : hm(d, true).replace(":00 ", " ")) +
+          (first && shown > 1 ? " · " + DAYS[d.getDay()].slice(0, 3) : "");
+        icon(o.querySelector(".ico"), sky(h.weather_code[i], h.is_day[i]).icon);
+        o.querySelector(".temp").textContent = Math.round(h.temperature_2m[i]) + "°";
+        o.querySelector(".rain").textContent = h.precipitation_probability[i] >= 10 ? h.precipitation_probability[i] + "% rain" : "";
+        o.querySelector(".wind").textContent = Math.round(h.wind_speed_10m[i]) + " mph";
+      });
+      if (!shown) opt(s, "note", "<span class='what'>Loading the hourly forecast…</span>", null);
+      s.panel = keep;
     });
   }
   function openChooser(button) {
@@ -571,11 +664,17 @@
   }
 
   // ---------- the remote ----------
-  // Focus lives in the bottom row; Up reaches the NFL box (Fantasy, then Panthers), Down comes back.
-  var cardFocus = -1, CARDS = ["train-card", "nfl-card"];
+  // Focus lives in the bottom row. Up reaches the boxes: training first, the game box above it,
+  // Left and Right cross to the weather box; Down from a bottom box comes back to the row.
+  var cardAt = null, BOXES = ["weather", "nfl-card", "train-card"];
   function showCardFocus() {
-    CARDS.forEach(function (id, i) { $(id).classList.toggle("focus", i === cardFocus && !sheet); });
+    BOXES.forEach(function (id) { $(id).classList.toggle("focus", id === cardAt && !sheet); });
     showFocus();
+  }
+  function openBox(id) {
+    if (id === "weather") openWeather();
+    else if (id === "train-card") openTraining();
+    else if (nextKey) openTeam(nextKey);
   }
   document.addEventListener("keydown", function (e) {
     var k = e.keyCode;
@@ -591,18 +690,21 @@
       sheet.at = at; sheetFocus(); e.preventDefault();
       return;
     }
-    if (cardFocus >= 0) {
-      if (k === 38 && cardFocus < CARDS.length - 1) cardFocus++;
-      else if (k === 40) cardFocus--;
-      else if (k === 13) { if (CARDS[cardFocus] === "train-card") openTraining(); else if (nextKey) openTeam(nextKey); }
-      else if (k === 10009 || k === 8 || k === 27) cardFocus = -1;
+    if (cardAt) {
+      if (k === 38 && cardAt === "train-card") cardAt = "nfl-card";
+      else if (k === 40) cardAt = cardAt === "nfl-card" ? "train-card" : null;
+      else if (k === 37 && cardAt !== "weather") cardAt = "weather";
+      else if (k === 39 && cardAt === "weather") cardAt = "train-card";
+      else if (k === 13) openBox(cardAt);
+      else if (k === 10009 || k === 8 || k === 27) cardAt = null;
+      else if (k === 38 || k === 37 || k === 39) { e.preventDefault(); return; }
       else return;
       showCardFocus(); e.preventDefault();
       return;
     }
     if (k === 37 && focus > 0) { focus--; showFocus(); }
     else if (k === 39 && focus < items.length - 1) { focus++; showFocus(); }
-    else if (k === 38) { cardFocus = 0; showCardFocus(); }
+    else if (k === 38) { cardAt = "train-card"; showCardFocus(); }
     else if (k === 13 && items[focus]) activate(items[focus]);
     else return;
     e.preventDefault();
@@ -643,6 +745,7 @@
     else if (h[0] === "more") openMore();
     else if (h[0] === "training") openTraining();
     else if (h[0] === "session") { if (train && train.last) openSession(train.last.id); }
-    else if (h[0] === "up") { cardFocus = +h[1] || 0; showCardFocus(); }
+    else if (h[0] === "up") { cardAt = BOXES[+h[1] || 0]; showCardFocus(); }
+    else if (h[0] === "weather") openWeather();
   }, 6000);
 })();
